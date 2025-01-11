@@ -11,29 +11,27 @@
 **
 ****************************************************************************/
 
-#include "session.h"
+#include "clipboard.h"
 
-Session::Session(QObject *parent) { }
+#include <QClipboard>
+#include <QGuiApplication>
 
-Session::~Session() { }
-
-void Session::set(const QString &name, const QVariant &value)
+Clipboard::Clipboard(QObject *parent) : QObject(parent)
 {
-    if (m_variables.value(name) != value) {
-        if (value.isValid())
-            m_variables.insert(name, value);
-        else
-            m_variables.remove(name);
-        emit changed(name, value);
-    }
+    QClipboard *systemClipboard = qApp->clipboard();
+    connect(systemClipboard, &QClipboard::dataChanged, this, &Clipboard::textChanged);
 }
 
-QVariant Session::get(const QString &name) const
+Clipboard::~Clipboard() { }
+
+void Clipboard::setText(const QString &val)
 {
-    return m_variables.value(name);
+    QClipboard *systemClipboard = qApp->clipboard();
+    systemClipboard->setText(val);
 }
 
-void Session::unset(const QString &name)
+QString Clipboard::text() const
 {
-    this->set(name, QVariant());
+    QClipboard *systemClipboard = qApp->clipboard();
+    return systemClipboard->text();
 }

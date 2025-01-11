@@ -28,7 +28,6 @@ import "qrc:/qml/globals"
 import "qrc:/qml/dialogs"
 import "qrc:/qml/helpers"
 import "qrc:/qml/scrited"
-import "qrc:/qml/modules"
 import "qrc:/qml/controls"
 import "qrc:/qml/screenplay"
 import "qrc:/qml/notifications"
@@ -386,6 +385,8 @@ Item {
         id: appToolBarArea
         anchors.left: parent.left
         anchors.right: parent.right
+
+        z: 1
         height: 53
         color: Runtime.colors.primary.c50.background
         enabled: visible

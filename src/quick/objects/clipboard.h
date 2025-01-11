@@ -11,29 +11,28 @@
 **
 ****************************************************************************/
 
-#ifndef SESSION_H
-#define SESSION_H
+#ifndef CLIPBOARD_H
+#define CLIPBOARD_H
 
 #include <QQmlEngine>
 
-class Session : public QObject
+class Clipboard : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
     QML_SINGLETON
 
 public:
-    Session(QObject *parent = nullptr);
-    ~Session();
+    Clipboard(QObject *parent = nullptr);
+    ~Clipboard();
 
-    Q_INVOKABLE void set(const QString &name, const QVariant &value);
-    Q_INVOKABLE QVariant get(const QString &name) const;
-    Q_INVOKABLE void unset(const QString &name);
+    Q_PROPERTY(QString text READ text WRITE setText NOTIFY textChanged)
+    void setText(const QString &val);
+    QString text() const;
+    Q_SIGNAL void textChanged();
 
-    Q_SIGNAL void changed(const QString &name, const QVariant &value);
-
-private:
-    QMap<QString, QVariant> m_variables;
+    Q_PROPERTY(bool hasText READ hasHasText NOTIFY textChanged)
+    bool hasHasText() const { return !this->text().isEmpty(); }
 };
 
-#endif // SESSION_H
+#endif // CLIPBOARD_H

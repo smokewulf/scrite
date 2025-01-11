@@ -114,11 +114,25 @@ VclDialog {
                     model: _private.formInfo.fields
 
                     Loader {
+                        id: fieldLoader
+
                         required property int index
                         required property var modelData
 
                         Layout.fillWidth: true
                         source: delegateChooser.delegateSource(modelData.editor)
+                        opacity: enabled ? 1 : 0.5
+                        enabled: {
+                            if(modelData.feature !== "") {
+                                const afc = Qt.createQmlObject("import io.scrite.components 1.0; AppFeature { }", fieldLoader)
+                                afc.featureName = modelData.feature
+                                const ret = afc.enabled
+                                afc.destroy()
+                                return ret
+                            }
+                            return true
+                        }
+
                         onLoaded: {
                             item.exporter = exporter
                             item.tabSequence = tabSequence
@@ -221,9 +235,7 @@ VclDialog {
 
                         if(success) {
                             if(exportJob.copyToClipboard) {
-                                MessageBox.information(exporter.formatName + " - Export", "Successfully copied text to clipboard.", () => {
-                                                            Qt.callLater(root.close)
-                                                       })
+                                MessageBox.information(exporter.formatName + " - Export", "Successfully copied text to clipboard.", root.close)
                                 return
                             }
 
@@ -234,9 +246,7 @@ VclDialog {
                             Qt.callLater(root.close)
                         } else {
                             const exporterErrors = Aggregation.findErrorReport(exporter)
-                            MessageBox.information(exporter.formatName + " - Export", exporterErrors.errorMessage, () => {
-                                                       Qt.callLater(root.close)
-                                                   } )
+                            MessageBox.information(exporter.formatName + " - Export", exporterErrors.errorMessage, root.close)
                         }
                     }
                 }
@@ -271,10 +281,10 @@ VclDialog {
 
         property var formInfo: exporter ? exporter.configurationFormInfo() : {"title": "Unknown", "fields": []}
         property bool isPdfExport: exporter ? exporter.format === "Screenplay/Adobe PDF" : false
-        property bool exportEnabled: isPdfExport ? exporter.featureEnabled : _private.exportSaveFeature.enabled
+        property bool exportEnabled: exporter ? exporter.featureEnabled : false
 
         property AppFeature exportSaveFeature: AppFeature {
-            featureName: exporter ? "export/" + exporter.formatName.toLowerCase() + "/save" : "export"
+            featureName: exporter ? "export/" + exporter.format.toLowerCase() + "/save" : "export"
         }
 
         property VclDialog waitDialog

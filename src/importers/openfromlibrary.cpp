@@ -12,6 +12,7 @@
 ****************************************************************************/
 
 #include "user.h"
+#include "restapicall.h"
 #include "openfromlibrary.h"
 #include "networkaccessmanager.h"
 
@@ -114,7 +115,11 @@ bool LibraryService::doImport(QIODevice *device)
 Library::Library(Library::Type type, QObject *parent) : QAbstractListModel(parent), m_type(type)
 {
     this->setRecords(QJsonArray());
-    this->fetchRecords();
+
+    if (User::instance()->isLoggedIn())
+        this->fetchRecords();
+
+    connect(User::instance(), &User::loggedInChanged, this, &Library::fetchRecords);
 }
 
 Library::~Library() { }
@@ -155,31 +160,32 @@ void Library::reload()
 
 void Library::fetchRecords()
 {
-    if (m_busy)
+    if (m_busy || !User::instance()->isLoggedIn())
         return;
 
     this->setBusy(true);
 
-    JsonHttpRequest *call = new JsonHttpRequest(this);
-    call->setType(JsonHttpRequest::GET);
-    call->setApi(m_type == Screenplays ? QLatin1String("scriptalay/screenplays")
-                                       : QLatin1String("scriptalay/templates"));
-    call->setAutoDelete(true);
-    connect(call, &JsonHttpRequest::finished, this, [=]() {
+    AbstractScriptalayRestApiCall *call = m_type == Screenplays
+            ? (AbstractScriptalayRestApiCall *)(new ScriptalayScreenplaysRestApiCall(this))
+            : (AbstractScriptalayRestApiCall *)(new ScriptalayTemplatesRestApiCall(this));
+
+    connect(call, &RestApiCall::finished, this, [=]() {
         if (call->hasError() || !call->hasResponse()) {
             this->setBusy(false);
             return;
         }
 
-        const QJsonObject response = call->responseData();
-
-        m_baseUrl = response.value(QLatin1String("baseUrl")).toString();
+        m_baseUrl = call->baseUrl();
         emit baseUrlChanged();
 
-        this->setRecords(response.value(QLatin1String("records")).toArray());
+        this->setRecords(call->records());
         this->setBusy(false);
     });
-    call->call();
+
+    if (!call->call()) {
+        call->deleteLater();
+        this->setBusy(false);
+    }
 }
 
 void Library::setRecords(const QJsonArray &array)

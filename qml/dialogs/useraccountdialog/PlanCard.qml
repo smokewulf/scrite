@@ -24,13 +24,15 @@ import "qrc:/qml/helpers"
 RowLayout {
     id: root
 
-    property url icon: "qrc:/images/prodicon.png"
+    property url icon: exclusive ? "qrc:/images/exclprodicon.png" : "qrc:/images/prodicon.png"
     property string name
     property string duration
     property string durationNote
     property string price
     property string priceNote
+    property bool   exclusive: false
     property string actionLink
+    property bool actionLinkVisible: true
     property bool actionLinkEnabled: true
 
     signal actionLinkClicked()
@@ -41,6 +43,7 @@ RowLayout {
         Layout.minimumWidth: parent.width * 0.25
         Layout.maximumWidth: parent.width * 0.25
         Layout.preferredWidth: parent.width * 0.25
+        z: 1
 
         spacing: 5
 
@@ -68,6 +71,7 @@ RowLayout {
         Layout.minimumWidth: parent.width * 0.3
         Layout.maximumWidth: parent.width * 0.3
         Layout.preferredWidth: parent.width * 0.3
+        z: 1
 
         LabelWithTooltip {
             Layout.fillWidth: true
@@ -88,6 +92,7 @@ RowLayout {
         Layout.minimumWidth: parent.width * 0.3
         Layout.maximumWidth: parent.width * 0.3
         Layout.preferredWidth: parent.width * 0.3
+        z: 1
 
         LabelWithTooltip {
             Layout.fillWidth: true
@@ -109,6 +114,7 @@ RowLayout {
 
         text: root.actionLink
         enabled: root.actionLinkEnabled
+        opacity: root.actionLinkVisible ? 1 : 0
         font.bold: true
         horizontalAlignment: Text.AlignRight
 

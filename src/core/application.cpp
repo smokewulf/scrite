@@ -17,8 +17,8 @@
 #include "autoupdate.h"
 #include "application.h"
 #include "notification.h"
+#include "localstorage.h"
 #include "scritedocument.h"
-#include "jsonhttprequest.h"
 
 #ifdef ENABLE_CRASHPAD_CRASH_TEST
 #include "crashpadmodule.h"
@@ -58,7 +58,7 @@
 #include <QOperatingSystemVersion>
 #include <QNetworkConfigurationManager>
 
-#define ENABLE_SCRIPT_HOTKEY
+// #define ENABLE_SCRIPT_HOTKEY
 
 bool QtApplicationEventNotificationCallback(void **cbdata);
 
@@ -142,6 +142,12 @@ Application::Application(int &argc, char **argv, const QVersionNumber &version)
         m_settings->setValue(QStringLiteral("Installation/fileTypeRegistered"), rft);
         if (rft)
             m_settings->setValue(QStringLiteral("Installation/path"), this->applicationFilePath());
+    }
+
+    if (LocalStorage::load("email").isNull()) {
+        const QString email = m_settings->value("Registration/email").toString();
+        if (!email.isEmpty())
+            LocalStorage::store("email", email);
     }
 
 #ifndef QT_NO_DEBUG_OUTPUT
@@ -340,6 +346,26 @@ Application::~Application()
 #endif
 }
 
+QString Application::deviceId() const
+{
+    static QString ret;
+    if (ret.isEmpty()) {
+        ret = QString::fromLatin1(QSysInfo::machineUniqueId().toHex());
+        if (!ret.isEmpty())
+            return ret;
+
+        const QString deviceIdKey = QStringLiteral("deviceId");
+        ret = LocalStorage::load(deviceIdKey).toString();
+        if (!ret.isEmpty())
+            return ret;
+
+        ret = QUuid::createUuid().toString();
+        LocalStorage::store(deviceIdKey, ret);
+    }
+
+    return ret;
+}
+
 QString Application::installationId() const
 {
     QString clientID = m_settings->value("Installation/ClientID").toString();
@@ -393,6 +419,20 @@ QUrl Application::toHttpUrl(const QUrl &url) const
     return url2;
 }
 
+QString Application::platformAsString() const
+{
+    switch (this->platform()) {
+    case Application::WindowsDesktop:
+        return QStringLiteral("Windows");
+    case Application::LinuxDesktop:
+        return QStringLiteral("Linux");
+    case Application::MacOS:
+        return QStringLiteral("macOS");
+    }
+
+    return QStringLiteral("Unknown");
+}
+
 #ifdef Q_OS_MAC
 Application::Platform Application::platform() const
 {
@@ -416,6 +456,26 @@ Application::Platform Application::platform() const
 }
 #endif
 #endif
+
+QString Application::platformVersion() const
+{
+    const auto osver = QOperatingSystemVersion::current();
+
+    return
+#ifdef Q_OS_MAC
+            osver.name() + "-" +
+#endif
+            QVersionNumber(osver.majorVersion(), osver.minorVersion(), osver.microVersion())
+                    .toString();
+}
+
+QString Application::platformType() const
+{
+    if (QSysInfo::WordSize == 32)
+        return QStringLiteral("x86");
+
+    return QStringLiteral("x64");
+}
 
 QStringList Application::availableThemes()
 {
@@ -950,6 +1010,7 @@ QJsonObject Application::objectConfigurationFormInfo(const QObject *object, cons
         field.insert("max", queryPropertyInfo(prop, "FieldMaxValue"));
         field.insert("ideal", queryPropertyInfo(prop, "FieldDefaultValue"));
         field.insert("group", queryPropertyInfo(prop, "FieldGroup"));
+        field.insert("feature", queryPropertyInfo(prop, "Feature"));
 
         const QString fieldEnum = queryPropertyInfo(prop, "FieldEnum");
         if (!fieldEnum.isEmpty()) {
@@ -1896,8 +1957,9 @@ void Application::startNewInstance(QWindow *window, const QString &filePath, boo
     } else
         args += { QStringLiteral("--geodelta"), QStringLiteral("30") };
 
-    if (!JsonHttpRequest::sessionToken().isEmpty())
-        args += { QStringLiteral("--sessionToken"), JsonHttpRequest::sessionToken() };
+    const QString sessionToken = LocalStorage::load("sessionToken").toString();
+    if (!sessionToken.isEmpty())
+        args += { QStringLiteral("--sessionToken"), sessionToken };
 
     QProcess::startDetached(appPath, args);
 }
@@ -2102,6 +2164,10 @@ QString Application::relativeTime(const QDateTime &dt)
         return QStringLiteral("Unknown Time");
 
     const QDateTime now = QDateTime::currentDateTime();
+    if (dt > now) {
+        return QLocale::system().toString(dt, QLocale::LongFormat);
+    }
+
     if (now.date() == dt.date()) {
         const int secsInMin = 60;
         const int secsInHour = secsInMin * 60;

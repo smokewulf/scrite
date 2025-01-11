@@ -37,7 +37,7 @@ function formatDate(date)
 
 function formatDateIncludingYear(date)
 {
-    return formatDate(date) + ", " + date.getFullYear();
+    return formatDate(date) + " " + date.getFullYear();
 }
 
 function formatDateRangeAsString(start_date, end_date)
@@ -61,10 +61,10 @@ function daysSpanAsString(nrDays)
     let ret = ""
     if (nrDays < 0)
     {
-        ret = "already"
+        ret = "Already"
     }
-    else if (nrDays === 0) { ret = "today" }
-    else if (nrDays === 1) { ret = "tomorrow" }
+    else if (nrDays === 0) { ret = "Today" }
+    else if (nrDays === 1) { ret = "Tomorrow" }
     else
     {
         const years = Math.floor(nrDays / 365)

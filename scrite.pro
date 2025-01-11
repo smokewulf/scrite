@@ -5,7 +5,7 @@ TARGET = Scrite
 CONFIG += c++17
 DEFINES += PHTRANSLATE_STATICLIB
 
-VERSION = 0.9.9.2
+VERSION = 0.9.9.9
 DEFINES += SCRITE_VERSION=\\\"$$VERSION\\\"
 
 #DEFINES += SCRITE_ENABLE_AUTOMATION
@@ -58,6 +58,7 @@ HEADERS += \
     src/automation/windowcapture.h \
     src/core/appwindow.h \
     src/core/filelocker.h \
+    src/core/localstorage.h \
     src/core/pdfexportablegraphicsscene.h \
     src/core/peerapplookup.h \
     src/core/printerobject.h \
@@ -78,8 +79,8 @@ HEADERS += \
     src/exporters/characterrelationshipsgraphexporter_p.h \
     src/exporters/structureexporter_p.h \
     src/importers/openfromlibrary.h \
-    src/network/jsonhttprequest.h \
     src/network/networkaccessmanager.h \
+    src/network/restapicall.h \
     src/network/user.h \
     src/printing/qtextdocumentpagedprinter.h \
     src/quick/items/boundingboxevaluator.h \
@@ -90,6 +91,7 @@ HEADERS += \
     src/quick/objects/basicfileiconprovider.h \
     src/quick/objects/basicfileinfo.h \
     src/quick/objects/batchchange.h \
+    src/quick/objects/clipboard.h \
     src/quick/objects/colorimageprovider.h \
     src/quick/objects/completionmodel.h \
     src/quick/objects/contextmenuevent.h \
@@ -100,7 +102,6 @@ HEADERS += \
     src/quick/objects/modelaggregator.h \
     src/quick/objects/propertyalias.h \
     src/quick/objects/refcounter.h \
-    src/quick/objects/session.h \
     src/quick/objects/syntaxhighlighter.h \
     src/quick/objects/tabsequencemanager.h \
     src/quick/objects/delayedpropertybinder.h \
@@ -192,6 +193,7 @@ SOURCES += \
     src/core/application_build_timestamp.cpp \
     src/core/appwindow.cpp \
     src/core/filelocker.cpp \
+    src/core/localstorage.cpp \
     src/core/pdfexportablegraphicsscene.cpp \
     src/core/peerapplookup.cpp \
     src/core/qobjectlistmodel.cpp \
@@ -211,8 +213,8 @@ SOURCES += \
     src/exporters/characterrelationshipsgraphexporter_p.cpp \
     src/exporters/structureexporter_p.cpp \
     src/importers/openfromlibrary.cpp \
-    src/network/jsonhttprequest.cpp \
     src/network/networkaccessmanager.cpp \
+    src/network/restapicall.cpp \
     src/network/user.cpp \
     src/printing/qtextdocumentpagedprinter.cpp \
     src/quick/items/boundingboxevaluator.cpp \
@@ -223,6 +225,7 @@ SOURCES += \
     src/quick/objects/basicfileiconprovider.cpp \
     src/quick/objects/basicfileinfo.cpp \
     src/quick/objects/batchchange.cpp \
+    src/quick/objects/clipboard.cpp \
     src/quick/objects/colorimageprovider.cpp \
     src/quick/objects/completionmodel.cpp \
     src/quick/objects/contextmenuevent.cpp \
@@ -233,7 +236,6 @@ SOURCES += \
     src/quick/objects/modelaggregator.cpp \
     src/quick/objects/propertyalias.cpp \
     src/quick/objects/refcounter.cpp \
-    src/quick/objects/session.cpp \
     src/quick/objects/syntaxhighlighter.cpp \
     src/quick/objects/tabsequencemanager.cpp \
     src/quick/objects/focustracker.cpp \
@@ -337,7 +339,7 @@ QTQUICK_COMPILER_SKIPPED_RESOURCES += scrite_misc.qrc
 macx {
     ICON = appicon.icns
     QMAKE_INFO_PLIST = Info.plist
-    VERSION_INFO = "0.9.9b-beta-macos"
+    VERSION_INFO = "0.9.9i-beta-macos"
 
     HEADERS += src/core/systemtextinputmanager_macos.h
     OBJECTIVE_SOURCES += src/core/systemtextinputmanager_macos.mm
@@ -347,9 +349,9 @@ macx {
 
 win32 {
     contains(QT_ARCH, i386) {
-        VERSION_INFO = "0.9.9b-beta-windows-x86"
+        VERSION_INFO = "0.9.9i-beta-windows-x86"
     } else {
-        VERSION_INFO = "0.9.9b-beta-windows-x64"
+        VERSION_INFO = "0.9.9i-beta-windows-x64"
     }
 
     RC_ICONS = appicon.ico
@@ -360,7 +362,7 @@ win32 {
 
 linux {
     CONFIG+=use_gold_linker
-    VERSION_INFO = "0.9.9b-beta-linux"
+    VERSION_INFO = "0.9.9i-beta-linux"
 }
 
 include($$PWD/3rdparty/sonnet/sonnet.pri)
