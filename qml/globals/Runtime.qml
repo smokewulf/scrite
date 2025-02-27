@@ -118,7 +118,8 @@ Item {
         property real spaceBetweenScenes: 0
         property int commentsPanelTabIndex: 1
         property bool markupToolsDockVisible: true
-        property bool pausePageAndTimeComputation: false
+        property bool pausePagination: true
+        property bool pausePaginationForEachDocument: true
         property bool highlightCurrentLine: true
         property bool applyUserDefinedLanguageFonts: true
         property bool optimiseScrolling: false
@@ -222,6 +223,11 @@ Item {
         }
     }
 
+    function showHelpTip(tipName) {
+        if(helpTips !== undefined)
+            Announcement.shout(Runtime.announcementIds.showHelpTip, tipName)
+    }
+
     readonly property Settings notebookSettings: Settings {
         fileName: Scrite.app.settingsFilePath
         category: "Notebook"
@@ -279,6 +285,7 @@ Item {
 
         property bool enableAnimations: true
         property bool useSoftwareRenderer: false
+        property bool useNativeTextRendering: false
         property string theme: "Material"
         property int primaryColor: colors.defaultPrimaryColor
         property int accentColor: colors.defaultAccentColor
@@ -569,9 +576,9 @@ Item {
     readonly property ScreenplayTextDocument screenplayTextDocument: ScreenplayTextDocument {
         // Setting this is as good as setting the other.
         // when paused = true, page and time computation is halted.
-        property bool paused: Runtime.screenplayEditorSettings.pausePageAndTimeComputation
+        property bool paused: Runtime.screenplayEditorSettings.pausePagination
         onPausedChanged: Qt.callLater( function() {
-            Runtime.screenplayEditorSettings.pausePageAndTimeComputation = screenplayTextDocument.paused
+            Runtime.screenplayEditorSettings.pausePagination = screenplayTextDocument.paused
         })
 
         screenplay: Scrite.document.loading || paused ? null : Runtime.screenplayAdapter.screenplay
@@ -608,6 +615,7 @@ Item {
         readonly property string closeDialogBoxRequest: "A6456A87-FC8C-405B-BDD7-7625F86272BA"
         readonly property string userAccountDialogScreen: "24A8C9F3-1F62-4B14-A65E-250E53350152"
         readonly property string userProfileScreenPage: "D97FD221-5257-4A20-B9A2-744594E99D76"
+        readonly property string showHelpTip: "B168E17C-14CA-454F-9DF8-CAA381D9A8A2"
     }
 
     readonly property QtObject announcementData: QtObject {
@@ -643,7 +651,7 @@ Item {
             if(Scrite.user.loggedIn) {
                 let api = Qt.createQmlObject("import io.scrite.components 1.0; UserHelpTipsRestApiCall {}", root)
                 api.finished.connect( () => {
-                                          root.helpTip = api.helpTips
+                                          root.helpTips = api.helpTips
                                           api.destroy()
                                       })
                 if(!api.call())

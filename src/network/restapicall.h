@@ -238,6 +238,26 @@ public:
     QString email() const { return m_email; }
     Q_SIGNAL void emailChanged();
 
+    Q_PROPERTY(QString firstName READ firstName WRITE setFirstName NOTIFY firstNameChanged)
+    void setFirstName(const QString &val);
+    QString firstName() const { return m_firstName; }
+    Q_SIGNAL void firstNameChanged();
+
+    Q_PROPERTY(QString lastName READ lastName WRITE setLastName NOTIFY lastNameChanged)
+    void setLastName(const QString &val);
+    QString lastName() const { return m_lastName; }
+    Q_SIGNAL void lastNameChanged();
+
+    Q_PROPERTY(QString experience READ experience WRITE setExperience NOTIFY experienceChanged)
+    void setExperience(const QString &val);
+    QString experience() const { return m_experience; }
+    Q_SIGNAL void experienceChanged();
+
+    Q_PROPERTY(QString wdyhas READ wdyhas WRITE setWdyhas NOTIFY wdyhasChanged)
+    void setWdyhas(const QString &val);
+    QString wdyhas() const { return m_wdyhas; }
+    Q_SIGNAL void wdyhasChanged();
+
     Q_PROPERTY(QJsonObject userInfo READ userInfo NOTIFY responseChanged)
     QJsonObject userInfo() const { return this->responseData(); }
 
@@ -249,6 +269,10 @@ public:
 
 private:
     QString m_email;
+    QString m_wdyhas;
+    QString m_lastName;
+    QString m_firstName;
+    QString m_experience;
 };
 
 class AppLatestReleaseRestApiCall : public RestApiCall
@@ -692,6 +716,30 @@ public:
 
 private:
     QString m_code;
+};
+
+class SubscriptionTrialDeclineReasonApiCall : public RestApiCall
+{
+    Q_OBJECT
+    QML_ELEMENT
+
+public:
+    SubscriptionTrialDeclineReasonApiCall(QObject *parent = nullptr);
+    ~SubscriptionTrialDeclineReasonApiCall();
+
+    Q_PROPERTY(QString reason READ reason WRITE setReason NOTIFY reasonChanged)
+    void setReason(const QString &val);
+    QString reason() const { return m_reason; }
+    Q_SIGNAL void reasonChanged();
+
+    // RestApiCall interface
+    Type type() const { return POST; }
+    bool useSessionToken() const { return true; }
+    QString api() const { return "subscription/trialDeclineReason"; }
+    QJsonObject data() const;
+
+private:
+    QString m_reason;
 };
 
 class SubscriptionPlanActivationRestApiCall : public RestApiCall

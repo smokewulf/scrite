@@ -103,17 +103,37 @@ DialogLauncher {
                     Layout.preferredHeight: 14
                 }
 
-                VclLabel {
+                RowLayout {
                     Layout.alignment: Qt.AlignHCenter
 
-                    text: "This app is released under <strong>GPLv3</strong>.<br/><font color=\"blue\">Click here</font> to view the license terms."
-                    font.pointSize: Runtime.idealFontMetrics.font.pointSize
-                    color: "gray"
+                    spacing: 10
 
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: TermsOfUseDialog.launch()
+                    Link {
+                        text: "Terms Of Use"
+                        font.pointSize: Runtime.minimumFontMetrics.font.pointSize
+                        onClicked: Qt.openUrlExternally("https://www.scrite.io/terms-of-use/")
+                    }
+
+                    VclText {
+                        text: "•"
+                        font.pointSize: Runtime.minimumFontMetrics.font.pointSize
+                    }
+
+                    Link {
+                        text: "Privacy Policy"
+                        font.pointSize: Runtime.minimumFontMetrics.font.pointSize
+                        onClicked: Qt.openUrlExternally("https://www.scrite.io/privacy-policy/")
+                    }
+
+                    VclText {
+                        text: "•"
+                        font.pointSize: Runtime.minimumFontMetrics.font.pointSize
+                    }
+
+                    Link {
+                        text: "Refund Policy"
+                        font.pointSize: Runtime.minimumFontMetrics.font.pointSize
+                        onClicked: Qt.openUrlExternally("https://www.scrite.io/refund-and-cancellation-policy/")
                     }
                 }
 
@@ -126,7 +146,7 @@ DialogLauncher {
                     Layout.alignment: Qt.AlignHCenter
 
                     text: "The app uses:"
-                    font.pointSize: Runtime.idealFontMetrics.font.pointSize - 2
+                    font.pointSize: Runtime.idealFontMetrics.font.pointSize
                 }
 
                 Rectangle {
@@ -174,9 +194,19 @@ DialogLauncher {
                                 url: "https://quilljs.com/"
                             }
 
-                            ListElement {
-                                credits: "<strong>Qt</strong> 5.15 LTS for developing the entire app."
-                                url: "https://www.qt.io"
+                            Component.onCompleted: {
+                                append({
+                                           "credits": "<strong>Qt</strong> " + Scrite.app.qtVersionString + " as UI framework for the entire app.",
+                                           "url": "https://www.qt.io"
+                                       })
+
+                                if(Scrite.app.isWindowsPlatform || Scrite.app.isLinuxPlatform) {
+                                    const v = Scrite.app.openSslVersionString
+                                    append({
+                                                "credits": "<strong>" + v + "</strong> for use with https protocol.",
+                                                "url": "https://openssl-library.org/news/openssl-1.1.1-notes/index.html"
+                                           })
+                                }
                             }
                         }
                         ScrollBar.vertical: ScrollBar { }
@@ -189,7 +219,7 @@ DialogLauncher {
                             color: creditLabelMouseArea.containsMouse ? "blue" : "black"
                             width: creditsView.width // - (creditsView.ScrollBar.vertical.needed ? 20 : 0)
                             wrapMode: Text.WordWrap
-                            font.pointSize: Runtime.idealFontMetrics.font.pointSize - 2
+                            font.pointSize: Runtime.idealFontMetrics.font.pointSize
                             horizontalAlignment: Text.AlignHCenter
 
                             MouseArea {
@@ -282,7 +312,7 @@ DialogLauncher {
 
                     Button {
                         text: "Learning Guides"
-                        onClicked: Qt.openUrlExternally("https://www.scrite.io/index.php/help/")
+                        onClicked: Qt.openUrlExternally("https://www.scrite.io/help/")
                     }
 
                     Button {

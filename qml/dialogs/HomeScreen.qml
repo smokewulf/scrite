@@ -52,8 +52,7 @@ DialogLauncher {
             onCloseRequest: Qt.callLater(dialog.close)
         }
 
-        onOpened: _private.launchCounter = _private.launchCounter + 1
-        onClosed: _private.promptToJoinDiscordCommunity()
+        onOpened: _private.launchCounter = _private.launchCounter+1
 
         Announcement.onIncoming: (type, data) => {
             if(type === Runtime.announcementIds.closeHomeScreenRequest || type === Runtime.announcementIds.loginRequest)
@@ -64,24 +63,6 @@ DialogLauncher {
     QtObject {
         id: _private
 
-        property bool joinDiscordPrompted: false
         property int launchCounter: 0
-
-        function promptToJoinDiscordCommunity() {
-            if(joinDiscordPrompted === false &&
-                Runtime.applicationSettings.joinDiscordPromptCounter < 3 &&
-                _private.launchCounter >= Runtime.applicationSettings.joinDiscordPromptCounter*3) {
-                Utils.execLater(root, 1000, () => {
-                                    _private.joinDiscordPrompted = true
-                                    Runtime.applicationSettings.joinDiscordPromptCounter = Runtime.applicationSettings.joinDiscordPromptCounter+1
-                                    let dlg = JoinDiscordCommunity.launch(Math.max(3-Runtime.applicationSettings.joinDiscordPromptCounter,0)*2000)
-                                    if(Runtime.applicationSettings.joinDiscordPromptCounter < 3)
-                                        dlg.closed.connect( () => {
-                                                               if(!dlg.infoUrlOpened)
-                                                                Qt.openUrlExternally(JoinDiscordCommunity.infoUrl)
-                                                           })
-                                })
-            }
-        }
     }
 }

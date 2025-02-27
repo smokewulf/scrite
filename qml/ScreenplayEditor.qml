@@ -415,7 +415,8 @@ Rectangle {
                             target: titleCardLoader.item
 
                             function onEditTitlePageRequest(sourceItem) {
-                                TitlePageDialog.launch()
+                                const dlg = TitlePageDialog.launch()
+                                dlg.closed.connect(contentView.positionViewAtBeginning)
                             }
                         }
 
@@ -431,7 +432,10 @@ Rectangle {
                                 anchors.right: parent.right
                                 anchors.rightMargin: ruler.rightMarginPx
                                 iconSource: "qrc:/icons/action/edit_title_page.png"
-                                onClicked: TitlePageDialog.launch()
+                                onClicked: {
+                                    const dlg = TitlePageDialog.launch()
+                                    dlg.closed.connect(contentView.positionViewAtBeginning)
+                                }
                                 visible: parent.active && enabled
                                 enabled: !Scrite.document.readOnly
                             }
@@ -448,7 +452,10 @@ Rectangle {
                             opacity: hovered ? 1 : 0.75
                             anchors.centerIn: parent
                             anchors.verticalCenterOffset: Runtime.screenplayAdapter.elementCount > 0 ? -contentView.spacing/2 : 0
-                            onClicked: TitlePageDialog.launch()
+                            onClicked: {
+                                const dlg = TitlePageDialog.launch()
+                                dlg.closed.connect(contentView.positionViewAtBeginning)
+                            }
                             enabled: !Scrite.document.readOnly
                         }
 
@@ -960,6 +967,7 @@ Rectangle {
             }
 
             Image {
+                id: pageCountButton
                 source: "qrc:/icons/content/page_count.png"
                 height: parent.height; width: height; mipmap: true
                 anchors.verticalCenter: parent.verticalCenter
@@ -2632,18 +2640,18 @@ Rectangle {
                         ShortcutsModelItem.priority: 1
                         ShortcutsModelItem.enabled: contentItem.canSplitScene
                         ShortcutsModelItem.visible: sceneTextEditor.activeFocus
-                        ShortcutsModelItem.group: "Formatting"
+                        ShortcutsModelItem.group: "Edit"
                         ShortcutsModelItem.title: "Split Scene"
-                        ShortcutsModelItem.shortcut: Scrite.app.isMacOSPlatform ? "Ctrl+Return" : "Ctrl+Enter"
+                        ShortcutsModelItem.shortcut: Scrite.app.isMacOSPlatform ? "Ctrl+Shift+Return" : "Ctrl+Shift+Enter"
                     }
 
                     QtObject {
                         ShortcutsModelItem.priority: 1
                         ShortcutsModelItem.enabled: contentItem.canJoinToPreviousScene
                         ShortcutsModelItem.visible: sceneTextEditor.activeFocus
-                        ShortcutsModelItem.group: "Formatting"
+                        ShortcutsModelItem.group: "Edit"
                         ShortcutsModelItem.title: "Join Previous Scene"
-                        ShortcutsModelItem.shortcut: Scrite.app.isMacOSPlatform ? "Ctrl+Delete" : "Ctrl+Backspace"
+                        ShortcutsModelItem.shortcut: Scrite.app.isMacOSPlatform ? "Ctrl+Shift+Delete" : "Ctrl+Shift+Backspace"
                     }
 
                     function acceptCompletionSuggestion() {
@@ -2685,7 +2693,7 @@ Rectangle {
                             return
                         }
 
-                        if(event.modifiers & Qt.ControlModifier) {
+                        if(event.modifiers & Qt.ControlModifier && event.modifiers & Qt.ShiftModifier) {
                             contentItem.splitScene()
                             event.accepted = true
                             return
@@ -2764,25 +2772,20 @@ Rectangle {
                     Keys.onPressed: {
                         event.accepted = false
 
-                        if(event.modifiers === Qt.ControlModifier) {
-                            switch(event.key) {
-                            case Qt.Key_Delete:
-                                if(Scrite.app.isMacOSPlatform) {
-                                    event.accepted = true
-                                    if(sceneTextEditor.cursorPosition === 0)
-                                        contentItem.mergeWithPreviousScene()
-                                    else
-                                        contentItem.showCantMergeSceneMessage()
-                                }
-                                break
-                            case Qt.Key_Backspace:
-                                if(sceneTextEditor.cursorPosition === 0) {
-                                    event.accepted = true
+                        if(event.modifiers & Qt.ControlModifier && event.modifiers & Qt.ShiftModifier) {
+                            if( (Scrite.app.isMacOSPlatform && event.key === Qt.Key_Delete) || (event.key === Qt.Key_Backspace) ) {
+                                event.accepted = true
+                                if(sceneTextEditor.cursorPosition === 0)
                                     contentItem.mergeWithPreviousScene()
-                                }
                                 else
                                     contentItem.showCantMergeSceneMessage()
-                                break
+                            }
+
+                            return
+                        }
+
+                        if(event.modifiers === Qt.ControlModifier) {
+                            switch(event.key) {
                             case Qt.Key_0:
                                 event.accepted = true
                                 sceneHeadingAreaLoader.edit()
@@ -2961,6 +2964,11 @@ Rectangle {
             }
 
             function mergeWithPreviousScene() {
+                if(Scrite.document.readOnly) {
+                    event.accepted = false
+                    return
+                }
+
                 if(!contentItem.canJoinToPreviousScene) {
                     showCantMergeSceneMessage()
                     return
@@ -2970,6 +2978,11 @@ Rectangle {
             }
 
             function mergeWithPreviousSceneImpl() {
+                if(Scrite.document.readOnly) {
+                    event.accepted = false
+                    return
+                }
+
                 Runtime.screenplayTextDocument.syncEnabled = false
                 var ret = Runtime.screenplayAdapter.mergeElementWithPrevious(contentItem.theElement)
                 Runtime.screenplayTextDocument.syncEnabled = true
@@ -3706,24 +3719,30 @@ Rectangle {
 
                 ListView {
                     id: sceneListView
-                    anchors.fill: parent
-                    clip: true
-                    model: Runtime.screenplayAdapter
-                    currentIndex: Runtime.screenplayAdapter.currentIndex
-                    FlickScrollSpeedControl.factor: Runtime.workspaceSettings.flickScrollSpeedFactor
+
                     ScrollBar.vertical: VclScrollBar { flickable: sceneListView }
-                    highlightFollowsCurrentItem: true
-                    highlightMoveDuration: 0
-                    highlightResizeDuration: 0
-                    keyNavigationEnabled: false
-                    preferredHighlightEnd: height*0.8
-                    preferredHighlightBegin: height*0.2
-                    highlightRangeMode: ListView.NoHighlightRange
-                    property bool hasEpisodes: Runtime.screenplayAdapter.isSourceScreenplay ? Runtime.screenplayAdapter.screenplay.episodeCount > 0 : false
+                    FlickScrollSpeedControl.factor: Runtime.workspaceSettings.flickScrollSpeedFactor
 
                     FocusTracker.window: Scrite.window
                     FocusTracker.indicator.target: Runtime.undoStack
                     FocusTracker.indicator.property: "sceneListPanelActive"
+
+                    anchors.fill: parent
+
+                    clip: true
+                    model: Runtime.screenplayAdapter
+                    currentIndex: Runtime.screenplayAdapter.currentIndex
+
+                    highlightMoveDuration: 0
+                    highlightResizeDuration: 0
+                    highlightFollowsCurrentItem: true
+
+                    highlightRangeMode: ListView.NoHighlightRange
+                    keyNavigationEnabled: false
+                    preferredHighlightEnd: height*0.8
+                    preferredHighlightBegin: height*0.2
+
+                    property bool hasEpisodes: Runtime.screenplayAdapter.isSourceScreenplay ? Runtime.screenplayAdapter.screenplay.episodeCount > 0 : false
 
                     headerPositioning: ListView.OverlayHeader
                     header: Rectangle {
@@ -3862,7 +3881,7 @@ Rectangle {
                         property bool elementIsSelected: (Runtime.screenplayAdapter.currentIndex === index || screenplayElement.selected)
 
                         width: sceneListView.width-1
-                        height: 40
+                        height: delegateText.height + 16
                         color: scene ? elementIsSelected ? selectedColor : (Runtime.screenplayAdapter.isSourceScreenplay && Runtime.screenplayAdapter.screenplay.selectedElementsCount > 1 ? Qt.tint(normalColor, "#40FFFFFF") : normalColor)
                                      : Runtime.screenplayAdapter.currentIndex === index ? Scrite.app.translucent(Runtime.colors.accent.windowColor, 0.25) : Qt.rgba(0,0,0,0.01)
 
@@ -3907,19 +3926,27 @@ Rectangle {
 
                             VclLabel {
                                 id: delegateText
+
                                 Layout.fillWidth: true
                                 Layout.alignment: Qt.AlignVCenter
 
-                                font.family: "Courier Prime"
+                                property bool textIsSceneHeading: Runtime.sceneListPanelSettings.sceneTextMode === "HEADING"
+
+                                font.family: headingFontMetrics.font.family
                                 font.bold: Runtime.screenplayAdapter.currentIndex === index || delegateItem.elementIsBreak
                                 // font.pointSize: Math.ceil(Runtime.idealFontMetrics.font.pointSize*(delegateItem.elementIsBreak ? 1.2 : 1))
                                 horizontalAlignment: Qt.AlignLeft
                                 color: Runtime.colors.primary.c10.text
-                                font.capitalization: delegateItem.elementIsBreak || Runtime.sceneListPanelSettings.sceneTextMode !== "HEADING" ? Font.MixedCase : Font.AllUppercase
+                                font.capitalization: delegateItem.elementIsBreak ||textIsSceneHeading ? Font.AllUppercase : Font.MixedCase
+
+                                elide: textIsSceneHeading ? Text.ElideMiddle : Text.ElideRight
+                                wrapMode: textIsSceneHeading ? Text.NoWrap : Text.WrapAtWordBoundaryOrAnywhere
+                                maximumLineCount: wrapMode === Text.NoWrap ? 1 : 2
+
                                 text: {
                                     let ret = "UNKNOWN"
                                     if(scene) {
-                                        if(Runtime.sceneListPanelSettings.sceneTextMode === "HEADING") {
+                                        if(textIsSceneHeading) {
                                             if(scene.heading.enabled) {
                                                 ret = screenplayElement.resolvedSceneNumber + ". "
                                                 if(screenplayElement.omitted)
@@ -3961,9 +3988,6 @@ Rectangle {
 
                                     return ret
                                 }
-                                elide: Runtime.sceneListPanelSettings.sceneTextMode === "HEADING" ? Text.ElideMiddle : Text.ElideRight
-                                wrapMode: Text.NoWrap
-                                maximumLineCount: 1
                             }
 
                             VclLabel {
@@ -4638,6 +4662,37 @@ Rectangle {
                     Profiler.active = false
             }
             */
+        }
+    }
+
+    Loader {
+        id: pausePaginationAnimator
+        anchors.fill: parent
+        active: false
+        visible: active
+        sourceComponent: UiElementHighlight {
+            uiElement: pageCountButton
+            onDone: pausePaginationAnimator.active = false
+            description: "Time & Page Count: " + (Runtime.screenplayTextDocument.paused ? "Disbled" : "Enabled")
+            descriptionPosition: Item.TopRight
+            property bool scaleDone: false
+            onScaleAnimationDone: scaleDone = true
+            Component.onDestruction: {
+                if(scaleDone)
+                    pausePaginationAnimator.active = false
+            }
+        }
+
+        Connections {
+            target: Scrite.document
+
+            function onJustLoaded() {
+                if(Runtime.screenplayEditorSettings.pausePaginationForEachDocument)
+                    Runtime.screenplayTextDocument.paused = true
+                Utils.execLater(pausePaginationAnimator, 100, () => {
+                                    pausePaginationAnimator.active = true
+                                })
+            }
         }
     }
 

@@ -1925,9 +1925,16 @@ Item {
         anchors.centerIn: parent
 
         property bool handleCloseEvent: true
+
         Connections {
             target: Scrite.window
+
             function onClosing(close) {
+                if(!Scrite.window.closeButtonVisible) {
+                    close.accepted = false
+                    return
+                }
+
                 if(closeEventHandler.handleCloseEvent) {
                     close.accepted = false
 
@@ -1935,6 +1942,8 @@ Item {
 
                     SaveFileTask.save( () => {
                                           closeEventHandler.handleCloseEvent = false
+                                          if( TrialNotActivatedDialog.launch() !== null)
+                                            return
                                           Scrite.window.close()
                                       } )
                 } else
@@ -1986,8 +1995,6 @@ Item {
                              if(days >= 2) {
                                  if(!Runtime.helpNotificationSettings.isTipShown("discord"))
                                      htNotification.tipName = "discord"
-                                 else if(!Runtime.helpNotificationSettings.isTipShown("subscription") && days >= 5)
-                                     htNotification.tipName = "subscription"
                              }
                          })
         }
@@ -2048,9 +2055,29 @@ Item {
             }
         }
 
+        function showHelpTip(tipName) {
+            if(Runtime.helpTips[tipName] !== undefined && !Runtime.helpNotificationSettings.isTipShown(tipName)) {
+                helpTipNotification.createObject(Scrite.window.contentItem, {"tipName": tipName})
+            }
+        }
+
+        Announcement.onIncoming: (type, data) => {
+                                     if(type === Runtime.announcementIds.showHelpTip) {
+                                         _private.showHelpTip(""+data)
+                                     }
+                                 }
+
         Component.onCompleted: {
             if(Scrite.app.isMacOSPlatform)
                 Scrite.app.openFileRequest.connect(handleOpenFileRequest)
+        }
+    }
+
+    Component {
+        id: helpTipNotification
+        HelpTipNotification {
+            id: helpTip
+            Notification.onDismissed: helpTip.destroy()
         }
     }
 }

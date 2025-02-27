@@ -22,6 +22,7 @@
 #include "basicfileiconprovider.h"
 
 #include <QMenuBar>
+#include <QSettings>
 #include <QQuickStyle>
 #include <QQmlContext>
 #include <QOperatingSystemVersion>
@@ -39,18 +40,7 @@ AppWindow::AppWindow()
     // CAPTURE_CALL_GRAPH;
     ::AppWindowInstance = this;
 
-    QSurfaceFormat format = QSurfaceFormat::defaultFormat();
-    const QByteArray envOpenGLMultisampling =
-            qgetenv("SCRITE_OPENGL_MULTISAMPLING").toUpper().trimmed();
-    if (envOpenGLMultisampling == QByteArrayLiteral("FULL"))
-        format.setSamples(4);
-    else if (envOpenGLMultisampling == QByteArrayLiteral("EXTREME"))
-        format.setSamples(8);
-    else if (envOpenGLMultisampling == QByteArrayLiteral("NONE"))
-        format.setSamples(-1);
-    else
-        format.setSamples(2); // default
-    this->setFormat(format);
+    this->setFormat(QSurfaceFormat::defaultFormat());
 
 #ifdef Q_OS_MAC
     this->setFlag(Qt::WindowFullscreenButtonHint); // [0.5.2 All] Full Screen Mode #194
@@ -105,6 +95,19 @@ AppWindow::AppWindow()
                                                    "Base type of models (QAbstractItemModel)");
     qmlRegisterUncreatableType<QFontDatabase>(uri, 1, 0, "FontDatabase",
                                               "Refers to a QFontDatabase instance.");
+
+    const bool useNativeTextRendering = [=]() -> bool {
+#ifdef Q_OS_WIN
+        if (QOperatingSystemVersion::current() < QOperatingSystemVersion::Windows10)
+            return true;
+#endif
+        const QSettings *settings = Application::instance()->settings();
+        return settings
+                ? settings->value(QStringLiteral("Application/useNativeTextRendering"), false)
+                          .toBool()
+                : true;
+    }();
+    setTextRenderType(useNativeTextRendering ? NativeTextRendering : QtTextRendering);
 
     m_defaultWindowFlags = this->flags();
 

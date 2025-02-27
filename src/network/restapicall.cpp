@@ -236,7 +236,7 @@ bool RestApiCall::call()
         Application *sapp = Application::instance();
 
         const QString space = QStringLiteral(" ");
-        const QString ret = QStringLiteral("scrite-") + sapp->applicationVersion() + space
+        const QString ret = QStringLiteral("scrite-") + sapp->versionNumber().toString() + space
                 + sapp->platformAsString() + space + sapp->platformVersion() + space
                 + sapp->platformType() + space + sapp->installationId();
         return ret;
@@ -511,12 +511,62 @@ void AppCheckUserRestApiCall::setEmail(const QString &val)
     emit emailChanged();
 }
 
+void AppCheckUserRestApiCall::setFirstName(const QString &val)
+{
+    if (m_firstName == val)
+        return;
+
+    m_firstName = val;
+    emit firstNameChanged();
+}
+
+void AppCheckUserRestApiCall::setLastName(const QString &val)
+{
+    if (m_lastName == val)
+        return;
+
+    m_lastName = val;
+    emit lastNameChanged();
+}
+
+void AppCheckUserRestApiCall::setExperience(const QString &val)
+{
+    if (m_experience == val)
+        return;
+
+    m_experience = val;
+    emit experienceChanged();
+}
+
+void AppCheckUserRestApiCall::setWdyhas(const QString &val)
+{
+    if (m_wdyhas == val)
+        return;
+
+    m_wdyhas = val;
+    emit wdyhasChanged();
+}
+
 QJsonObject AppCheckUserRestApiCall::data() const
 {
     const Locale locale = Scrite::locale();
-    return { { "email", "$email" },
-             { "country", locale.country.name },
-             { "currency", locale.currency.code } };
+    QJsonObject ret = { { "email", "$email" },
+                        { "country", locale.country.code },
+                        { "currency", locale.currency.code } };
+
+    if (!m_firstName.isEmpty())
+        ret.insert("firstName", m_firstName);
+
+    if (!m_lastName.isEmpty())
+        ret.insert("lastName", m_lastName);
+
+    if (!m_experience.isEmpty())
+        ret.insert("experience", m_experience);
+
+    if (!m_wdyhas.isEmpty())
+        ret.insert("wdyhas", m_wdyhas);
+
+    return ret;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -952,6 +1002,29 @@ void SubscriptionReferralCodeRestApiCall::setCode(const QString &val)
 QJsonObject SubscriptionReferralCodeRestApiCall::data() const
 {
     return { { "code", m_code } };
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+SubscriptionTrialDeclineReasonApiCall::SubscriptionTrialDeclineReasonApiCall(QObject *parent)
+    : RestApiCall(parent)
+{
+}
+
+SubscriptionTrialDeclineReasonApiCall::~SubscriptionTrialDeclineReasonApiCall() { }
+
+void SubscriptionTrialDeclineReasonApiCall::setReason(const QString &val)
+{
+    if (m_reason == val)
+        return;
+
+    m_reason = val.left(512);
+    emit reasonChanged();
+}
+
+QJsonObject SubscriptionTrialDeclineReasonApiCall::data() const
+{
+    return { { "reason", m_reason } };
 }
 
 ///////////////////////////////////////////////////////////////////////////////

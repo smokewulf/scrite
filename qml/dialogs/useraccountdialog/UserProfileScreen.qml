@@ -39,6 +39,11 @@ Item {
         return "Hi, there."
     }
 
+    Component.onCompleted: {
+        if(Scrite.user.loggedIn)
+            Runtime.showHelpTip("UserProfileDialog")
+    }
+
     PageView {
         id: userProfilePageView
         anchors.fill: parent
@@ -108,7 +113,7 @@ Item {
                     cursorShape: Qt.PointingHandCursor
                     hoverEnabled: true
 
-                    onClicked: Qt.openUrlExternally("https://www.scrite.io/index.php/forum/")
+                    onClicked: Qt.openUrlExternally("https://www.scrite.io/forum/")
                 }
             }
         }
@@ -242,18 +247,17 @@ Item {
                     placeholderText: "Where did you hear about Scrite?"
                     maximumLength: 128
                     completionStrings: [
-                        "Colleague",
-                        "Email",
                         "Facebook",
-                        "Filmschool",
-                        "Friend",
+                        "Reddit",
+                        "YouTube",
+                        "Film School",
+                        "Film Workshop",
                         "Instagram",
-                        "Internet Search",
-                        "Invited to Collaborate",
+                        "Recommended by Friend",
+                        "Existing Scrite User",
                         "LinkedIn",
                         "Twitter",
-                        "Workshop",
-                        "YouTube"
+                        "Google Search"
                     ]
                     minimumCompletionPrefixLength: 0
                     maxCompletionItems: -1
@@ -518,6 +522,14 @@ Item {
                                 mipmap: true
                                 visible: source !== ""
                                 fillMode: Image.PreserveAspectFit
+
+                                MouseArea {
+                                    anchors.fill: parent
+
+                                    enabled: buttonsRepeater.count === 1
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: buttonsRepeater.itemAt(0).handleClick()
+                                }
                             }
 
                             VclLabel {
@@ -537,6 +549,7 @@ Item {
                             }
 
                             Repeater {
+                                id: buttonsRepeater
                                 model: modelData.buttons
 
                                 Link {
@@ -548,7 +561,7 @@ Item {
                                     text: modelData.text
                                     horizontalAlignment: Text.AlignHCenter
 
-                                    onClicked: {
+                                    function handleClick() {
                                         if(modelData.action === UserMessageButton.UrlAction) {
                                             Qt.openUrlExternally(modelData.endpoint)
                                             return
@@ -574,6 +587,8 @@ Item {
                                         // Implement API and Code in a future update
                                         enabled = false
                                     }
+
+                                    onClicked: handleClick()
                                 }
                             }
                         }
@@ -787,7 +802,7 @@ Item {
                                             return currencySymbol + modelData.pricing.price + " *"
                                         }
                                         priceNote: modelData.subtitle
-                                        actionLink: Utils.toTitleCase(modelData.action.kind) + " »"
+                                        actionLink: SubscriptionPlanOperations.planActionLinkText(modelData)
                                         onActionLinkClicked: SubscriptionPlanOperations.subscribeTo(modelData)
                                     }
                                 }

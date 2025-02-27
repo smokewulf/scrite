@@ -43,6 +43,7 @@
 #include <QJsonArray>
 #include <QClipboard>
 #include <QQmlEngine>
+#include <QSslSocket>
 #include <QQuickStyle>
 #include <QMessageBox>
 #include <QJsonObject>
@@ -52,6 +53,8 @@
 #include <QElapsedTimer>
 #include <QFontDatabase>
 #include <QJsonDocument>
+#include <QOpenGLContext>
+#include <QSurfaceFormat>
 #include <QStandardPaths>
 #include <QtConcurrentMap>
 #include <QtConcurrentRun>
@@ -201,11 +204,30 @@ Application::Application(int &argc, char **argv, const QVersionNumber &version)
     }();
     this->computeIdealFontPointSize();
 
+    QSurfaceFormat surfaceFormat = QSurfaceFormat::defaultFormat();
+    const QByteArray envOpenGLMultisampling =
+            qgetenv("SCRITE_OPENGL_MULTISAMPLING").toUpper().trimmed();
+    if (envOpenGLMultisampling == QByteArrayLiteral("FULL"))
+        surfaceFormat.setSamples(4);
+    else if (envOpenGLMultisampling == QByteArrayLiteral("EXTREME"))
+        surfaceFormat.setSamples(8);
+    else if (envOpenGLMultisampling == QByteArrayLiteral("HALF"))
+        surfaceFormat.setSamples(2);
+    else
+        surfaceFormat.setSamples(-1); // default
+    QSurfaceFormat::setDefaultFormat(surfaceFormat);
+
     const bool useSoftwareRenderer = [=]() -> bool {
 #ifdef Q_OS_WIN
         if (QOperatingSystemVersion::current() < QOperatingSystemVersion::Windows10)
             return true;
 #endif
+
+        QOpenGLContext context;
+        context.setFormat(surfaceFormat);
+        if (!context.create())
+            return true;
+
         return m_settings->value(QStringLiteral("Application/useSoftwareRenderer"), false).toBool();
     }();
     const QString style = [=]() -> QString {
@@ -217,6 +239,13 @@ Application::Application(int &argc, char **argv, const QVersionNumber &version)
 
     if (useSoftwareRenderer)
         QQuickWindow::setSceneGraphBackend(QSGRendererInterface::Software);
+
+#ifndef Q_OS_MAC
+#ifdef Q_OS_UNIX
+    const QString libPath = Application::applicationDirPath() + "/../lib";
+    Application::addLibraryPath(libPath);
+#endif
+#endif
 
     QQuickStyle::setStyle(style);
 }
@@ -245,16 +274,13 @@ QVersionNumber Application::prepare()
     const QVersionNumber applicationVersion =
             QVersionNumber::fromString(QStringLiteral(SCRITE_VERSION));
     const QString applicationVersionString = [applicationVersion]() -> QString {
+        QStringList ret = { QString::number(applicationVersion.majorVersion()),
+                            QString::number(applicationVersion.minorVersion()) };
+
+        if (applicationVersion.microVersion() > 0)
+            ret << QString::number(applicationVersion.microVersion());
+
         const QVector<int> segments = applicationVersion.segments();
-
-        QStringList ret;
-
-        for (int i = 0; i < qMin(segments.size(), 3); i++)
-            ret << QString::number(segments.at(i));
-
-        for (int i = ret.size(); i < 3; i++)
-            ret << QStringLiteral("0");
-
         for (int i = 3; i < segments.size(); i++) {
             QString field;
             int segment = qMax(0, segments.at(i));
@@ -291,15 +317,21 @@ QVersionNumber Application::prepare()
         QDir(oldAppDataFolder).removeRecursively();
     }
 
+#ifdef Q_OS_UNIX
+    Application::setApplicationVersion(applicationVersionString + " (GNU Linux)");
+#endif
+
 #ifdef Q_OS_MAC
-    Application::setApplicationVersion(applicationVersionString + QStringLiteral("-beta"));
+    Application::setApplicationVersion(applicationVersionString + QStringLiteral(" (macOS)"));
     if (QOperatingSystemVersion::current() > QOperatingSystemVersion::MacOSCatalina)
         qputenv("QT_MAC_WANTS_LAYER", QByteArrayLiteral("1"));
-#else
+#endif
+
+#ifdef Q_OS_WIN
     if (QSysInfo::WordSize == 32)
-        Application::setApplicationVersion(applicationVersionString + "-beta-x86");
+        Application::setApplicationVersion(applicationVersionString + " (Windows 32-bit)");
     else
-        Application::setApplicationVersion(applicationVersionString + "-beta-x64");
+        Application::setApplicationVersion(applicationVersionString + " (Windows 64-bit)");
 #endif
 
 #ifdef Q_OS_WIN
@@ -579,6 +611,11 @@ bool Application::setObjectProperty(QObject *object, const QString &name, const 
         return object->setProperty(qPrintable(name), value);
 
     return false;
+}
+
+QString Application::openSslVersionString() const
+{
+    return QSslSocket::sslLibraryVersionString();
 }
 
 UndoStack *Application::findUndoStack(const QString &objectName) const
